@@ -1,5 +1,8 @@
-gym
+gym==0.23.1
+numpy<2
 opencv-python
 plotly
+pygame
 torch
+torchvision
 tqdm
