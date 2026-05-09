@@ -1,0 +1,18 @@
+[project]
+name = "planet"
+version = "0.1.0"
+description = "PlaNet: A Deep Planning Network for Reinforcement Learning"
+requires-python = ">=3.9"
+dependencies = [
+    "gym==0.23.1",
+    "numpy<2",
+    "opencv-python",
+    "plotly",
+    "pygame",
+    "torch",
+    "torchvision",
+    "tqdm",
+]
+
+[dependency-groups]
+dev = []
