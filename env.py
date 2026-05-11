@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 
-GYM_ENVS = ['Pendulum-v1', 'MountainCarContinuous-v0', 'Ant-v2', 'HalfCheetah-v2', 'Hopper-v2', 'Humanoid-v2', 'HumanoidStandup-v2', 'InvertedDoublePendulum-v2', 'InvertedPendulum-v2', 'Reacher-v2', 'Swimmer-v2', 'Walker2d-v2']
+GYM_ENVS = ['Pendulum-v1', 'MountainCarContinuous-v0', 'Ant-v4', 'HalfCheetah-v4', 'Hopper-v4', 'Humanoid-v4', 'HumanoidStandup-v4', 'InvertedDoublePendulum-v4', 'InvertedPendulum-v4', 'Reacher-v4', 'Swimmer-v4', 'Walker2d-v4']
 CONTROL_SUITE_ENVS = ['cartpole-balance', 'cartpole-swingup', 'reacher-easy', 'finger-spin', 'cheetah-run', 'ball_in_cup-catch', 'walker-walk']
 CONTROL_SUITE_ACTION_REPEATS = {'cartpole': 8, 'reacher': 4, 'finger': 2, 'cheetah': 4, 'ball_in_cup': 6, 'walker': 2}
 
@@ -97,38 +97,42 @@ class GymEnv():
     import gym
     gym.logger.set_level(logging.ERROR)  # Ignore warnings from Gym logger
     self.symbolic = symbolic
-    self._env = gym.make(env)
-    self._env.seed(seed)
+    self._env = gym.make(env, render_mode='rgb_array')
+    self._seed = seed
     self.max_episode_length = max_episode_length
     self.action_repeat = action_repeat
     self.bit_depth = bit_depth
 
   def reset(self):
     self.t = 0  # Reset internal timer
-    state = self._env.reset()
+    state, _ = self._env.reset(seed=self._seed)
+    self._seed = None  # only seed on first reset
     if self.symbolic:
       return torch.tensor(state, dtype=torch.float32).unsqueeze(dim=0)
     else:
-      return _images_to_observation(self._env.render(mode='rgb_array'), self.bit_depth)
-  
+      return _images_to_observation(self._env.render(), self.bit_depth)
+
   def step(self, action):
     action = action.detach().numpy()
     reward = 0
     for k in range(self.action_repeat):
-      state, reward_k, done, _ = self._env.step(action)
+      state, reward_k, terminated, truncated, _ = self._env.step(action)
       reward += reward_k
       self.t += 1  # Increment internal timer
-      done = done or self.t == self.max_episode_length
+      done = terminated or truncated or self.t == self.max_episode_length
       if done:
         break
     if self.symbolic:
       observation = torch.tensor(state, dtype=torch.float32).unsqueeze(dim=0)
     else:
-      observation = _images_to_observation(self._env.render(mode='rgb_array'), self.bit_depth)
+      observation = _images_to_observation(self._env.render(), self.bit_depth)
     return observation, reward, done
 
   def render(self):
-    self._env.render()
+    frame = self._env.render()
+    if frame is not None:
+      cv2.imshow('screen', frame[:, :, ::-1])
+      cv2.waitKey(1)
 
   def close(self):
     self._env.close()
