@@ -1,7 +1,7 @@
 import gymnasium as gym
 from gymnasium.spaces import Box
 from typing import cast
-from new_implementation.experience_replay import ExperienceReplay
+from experience_replay import ExperienceReplay
 
 
 def collect_observations(env: gym.Env, seed_episodes, experience_size, image_shape, device) -> ExperienceReplay:
@@ -15,14 +15,15 @@ def collect_observations(env: gym.Env, seed_episodes, experience_size, image_sha
         truncated = False
         while not (terminated or truncated):
             action = env.action_space.sample()
-            observation, reward, terminated, truncated, _ = env.step(action)
+            raw_obs, reward, terminated, truncated, _ = env.step(action)#TODO: raw obs here is in the state space of the env.
+            observation = env.render()
             experience_replay.append(observation, reward, action, terminated or truncated)
     env.close()
     return experience_replay
 
 
 def main():
-    env = gym.make("Pendulum-v1", render_mode=None)
+    env = gym.make("Pendulum-v1", render_mode="rgb_array")
     seed_episodes = 10
     experience_size = 10000
     image_shape = [3, 64, 64]
