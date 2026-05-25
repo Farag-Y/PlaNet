@@ -4,9 +4,6 @@ import numpy as np
 import torch
 
 
-CONTROL_SUITE_ACTION_REPEATS = {'cartpole': 8, 'reacher': 4, 'finger': 2, 'cheetah': 4, 'ball_in_cup': 6, 'walker': 2}
-
-
 class BaseEnv(abc.ABC):
     def preprocess_observation_(self, observation, bit_depth):
         observation.div_(2 ** (8 - bit_depth)).floor_().div_(2 ** bit_depth).sub_(0.5)
@@ -48,65 +45,10 @@ class BaseEnv(abc.ABC):
     def sample_random_action(self): ...
 
 
-class ControlSuiteEnv(BaseEnv):
-    def __init__(self, env, seed, max_episode_length, action_repeat, bit_depth):
-        from dm_control import suite
-        domain, task = env.split('-')
-        self._env = suite.load(domain_name=domain, task_name=task, task_kwargs={'random': seed})
-        self.max_episode_length = max_episode_length
-        self.action_repeat = action_repeat
-        if action_repeat != CONTROL_SUITE_ACTION_REPEATS[domain]:
-            print('Using action repeat %d; recommended action repeat for domain is %d' % (action_repeat, CONTROL_SUITE_ACTION_REPEATS[domain]))
-        self.bit_depth = bit_depth
-
-    def reset(self):
-        self.t = 0
-        self._env.reset()
-        return self._images_to_observation(self._env.physics.render(camera_id=0), self.bit_depth)
-
-    def step(self, action):
-        action = action.detach().numpy()
-        reward = 0
-        for _ in range(self.action_repeat):
-            state = self._env.step(action)
-            reward += state.reward
-            self.t += 1
-            done = state.last() or self.t == self.max_episode_length
-            if done:
-                break
-        observation = self._images_to_observation(self._env.physics.render(camera_id=0), self.bit_depth)
-        return observation, reward, done
-
-    def render(self):
-        cv2.imshow('screen', self._env.physics.render(camera_id=0)[:, :, ::-1])
-        cv2.waitKey(1)
-
-    def close(self):
-        cv2.destroyAllWindows()
-        self._env.close()
-
-    @property
-    def observation_size(self):
-        return (3, 64, 64)
-
-    @property
-    def action_size(self):
-        return self._env.action_spec().shape[0]
-
-    @property
-    def action_range(self):
-        return float(self._env.action_spec().minimum[0]), float(self._env.action_spec().maximum[0])
-
-    def sample_random_action(self):
-        spec = self._env.action_spec()
-        return torch.from_numpy(np.random.uniform(spec.minimum, spec.maximum, spec.shape))
-
-
 class GymEnv(BaseEnv):
     def __init__(self, env, seed, max_episode_length, action_repeat, bit_depth):
-        import gym
-        import logging
-        gym.logger.set_level(logging.ERROR)
+        import gymnasium as gym
+        gym.logger.min_level = gym.logger.ERROR
         self._env = gym.make(env, render_mode='rgb_array')
         self._seed = seed
         self.max_episode_length = max_episode_length
@@ -155,3 +97,41 @@ class GymEnv(BaseEnv):
 
     def sample_random_action(self):
         return torch.from_numpy(self._env.action_space.sample())
+
+
+# pip install gymnasium[classic-control]
+GYM_ENVS_CLASSIC = [
+    'Pendulum-v1',
+    'MountainCarContinuous-v0',
+]
+
+# pip install gymnasium[box2d]  (also requires: pip install swig)
+GYM_ENVS_BOX2D = [
+    'BipedalWalker-v3',
+    'BipedalWalkerHardcore-v3',
+    'CarRacing-v3',
+]
+
+# pip install gymnasium[mujoco]
+GYM_ENVS_MUJOCO = [
+    'Ant-v5',
+    'HalfCheetah-v5',
+    'Hopper-v5',
+    'Humanoid-v5',
+    'HumanoidStandup-v5',
+    'InvertedDoublePendulum-v5',
+    'InvertedPendulum-v5',
+    'Pusher-v5',
+    'Reacher-v5',
+    'Swimmer-v5',
+    'Walker2d-v5',
+]
+
+GYM_ENVS = GYM_ENVS_CLASSIC + GYM_ENVS_BOX2D + GYM_ENVS_MUJOCO
+
+
+def Env(env, seed, max_episode_length, action_repeat, bit_depth):
+    if env in GYM_ENVS:
+        return GymEnv(env, seed, max_episode_length, action_repeat, bit_depth)
+    else:
+        raise ValueError(f"Unknown environment: '{env}'. Must be one of GYM_ENVS.")

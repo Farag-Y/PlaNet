@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "PlaNet: A Deep Planning Network for Reinforcement Learning"
 requires-python = ">=3.9"
 dependencies = [
-    "gym==0.23.1",
+    "gym==0.26.2",
     "gymnasium>=1.1.1",
     "imageio",
     "numpy<2",

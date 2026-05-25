@@ -1,35 +1,37 @@
-import gymnasium as gym
-from gymnasium.spaces import Box
-from typing import cast
+from env_wrapper import Env
 from experience_replay import ExperienceReplay
 
 
-def collect_observations(env: gym.Env, seed_episodes, experience_size, image_shape, device) -> ExperienceReplay:
-    obs_space = cast(Box, env.observation_space)
-    act_space = cast(Box, env.action_space)
-    experience_replay = ExperienceReplay(experience_size, obs_space.shape[0], image_shape, act_space.shape[0], device)
-
-    for i in range(seed_episodes):
-        observation, info = env.reset()
-        terminated = False
-        truncated = False
-        while not (terminated or truncated):
-            action = env.action_space.sample()
-            raw_obs, reward, terminated, truncated, _ = env.step(action)#TODO: raw obs here is in the state space of the env.
-            observation = env.render()
-            experience_replay.append(observation, reward, action, terminated or truncated)
+def collect_observations(env, seed_episodes, experience_replay: ExperienceReplay) -> ExperienceReplay:
+    for _ in range(seed_episodes):
+        observation = env.reset()          # tensor (1, 3, 64, 64), already preprocessed
+        done = False
+        while not done:
+            action = env.sample_random_action()           # torch tensor
+            observation, reward, done = env.step(action)  # (tensor, float, bool)
+            experience_replay.append(observation, reward, action, done)
     env.close()
     return experience_replay
 
 
 def main():
-    env = gym.make("Pendulum-v1", render_mode="rgb_array")
+    env = Env("Pendulum-v1", seed=0, max_episode_length=1000, action_repeat=2, bit_depth=5)
     seed_episodes = 10
     experience_size = 10000
-    image_shape = [3, 64, 64]
     device = "cpu"
-    collect_observations(env, seed_episodes=seed_episodes, experience_size=experience_size, image_shape=image_shape, device=device)
+    experience_replay = ExperienceReplay(
+        experience_size,
+        observation_size=0,                      # 0 = visual env (symbolic not used here)
+        image_shape=list(env.observation_size),  # (3, 64, 64) from wrapper
+        action_size=env.action_size,
+        device=device,
+    )
+    #TODO: Clean up what is above a bit.
+    transition_model = TransitionModel(args.belief_size, args.state_size, env.action_size, args.hidden_size, args.embedding_size, args.activation_function).to(device=args.device)
 
+    collect_observations(env, seed_episodes=seed_episodes, experience_replay=experience_replay)
+    #TODO: Prepare the main models, and initalize
+    #TODO:
 
 if __name__ == "__main__":
     main()

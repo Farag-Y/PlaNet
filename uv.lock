@@ -186,7 +186,7 @@ wheels = [
 
 [[package]]
 name = "gym"
-version = "0.23.1"
+version = "0.26.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cloudpickle" },
@@ -194,7 +194,7 @@ dependencies = [
     { name = "importlib-metadata", marker = "python_full_version < '3.10'" },
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/87/86/3f5467531428b6ce6f3c12d3121b4304d2ea1536a50775a4df036add37b8/gym-0.23.1.tar.gz", hash = "sha256:d0f9b9da34edbdace421c9442fc9205d03b8d15d0fb451053c766cde706d40e0", size = 626191, upload-time = "2022-03-14T22:44:47.272Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ab/b1/eb05a423eb801ab7d0715d6a3b28d92589e30b437052553df19ca2087240/gym-0.26.2.tar.gz", hash = "sha256:e0d882f4b54f0c65f203104c24ab8a38b039f1289986803c7d02cdbe214fbcc4", size = 721689, upload-time = "2022-10-04T23:57:43.247Z" }
 
 [[package]]
 name = "gym-notices"
@@ -1071,7 +1071,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "gym", specifier = "==0.23.1" },
+    { name = "gym", specifier = "==0.26.2" },
     { name = "gymnasium", specifier = ">=1.1.1" },
     { name = "imageio" },
     { name = "numpy", specifier = "<2" },
